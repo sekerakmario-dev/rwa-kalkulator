@@ -1,0 +1,2123 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>RWAdoor – Kalkulátor</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+  :root {
+    --ink: #0F0F11;
+    --ink-2: #1F1F23;
+    --accent: #E30613;
+    --accent-2: #B30410;
+    --bg: #F3F3F5;
+    --line: #E3E3E6;
+    --muted: #6B6B75;
+  }
+  * { -webkit-tap-highlight-color: transparent; }
+  html, body { background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .section-header {
+    background: var(--ink);
+    color: #fff;
+  }
+  .accent-bg { background: var(--accent); }
+  .accent-text { color: var(--accent); }
+  .door-card {
+    background: #fff;
+    border-left: 4px solid var(--accent);
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(20,20,40,0.06), 0 8px 24px -12px rgba(20,20,40,0.08);
+  }
+  .field-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 4px;
+    display: block;
+  }
+  .input, .select {
+    width: 100%;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 15px;
+    color: var(--ink);
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .input:focus, .select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(227,6,19,0.15);
+  }
+  .select { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%230F0F11' d='M6 8L0 0h12z'/></svg>"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border-radius: 8px; padding: 12px 18px; font-weight: 600; font-size: 15px;
+    transition: transform .05s ease, background .15s, box-shadow .15s;
+    cursor: pointer; border: none;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-2); }
+  .btn-primary:active { transform: translateY(1px); }
+  .btn-secondary { background: var(--ink); color: #fff; }
+  .btn-secondary:hover { background: var(--ink-2); }
+  .btn-ghost { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+  .btn-ghost:hover { background: var(--bg); }
+  .btn-danger {
+    background: transparent; color: #B43A3A; border: 1px solid #E8C5C5;
+    padding: 6px 10px; font-size: 13px;
+  }
+  .btn-danger:hover { background: #FCEEEE; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(227,6,19,0.08); color: var(--accent-2);
+    padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  }
+  .chk {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
+    background: #fff; cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  .chk:hover { border-color: var(--accent); background: #FFF5F6; }
+  .chk input { margin-top: 3px; accent-color: var(--accent); }
+  .chk-label { font-size: 14px; color: var(--ink); flex: 1; }
+  .chk-price { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .seg {
+    display: inline-flex; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 3px;
+  }
+  .seg button {
+    border: none; background: transparent; padding: 8px 14px; border-radius: 6px;
+    font-size: 14px; font-weight: 500; color: var(--ink); cursor: pointer;
+  }
+  .seg button.active { background: var(--ink); color: #fff; }
+  .summary-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-total {
+    background: var(--ink); color: #fff;
+    border-radius: 10px; padding: 18px 20px;
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .summary-total .num { font-size: 30px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .room-total {
+    background: linear-gradient(180deg, #FFF4F5 0%, #FFE6E8 100%);
+    border: 1px solid #F4C8CB;
+    border-radius: 8px; padding: 10px 14px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .room-total .label { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; color: var(--accent-2); }
+  .room-total .val { font-size: 20px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+  table.lines { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.lines th { background: #F7F7F9; text-align: left; padding: 10px 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: .05em; border-bottom: 1px solid var(--line); }
+  table.lines td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.lines tr:last-child td { border-bottom: none; }
+  table.lines td.num, table.lines th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .badge-ink { background: var(--ink); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600; letter-spacing: .04em; }
+  details > summary { cursor: pointer; user-select: none; }
+  details > summary::-webkit-details-marker { display: none; }
+  .chevron { transition: transform .2s; }
+  details[open] .chevron { transform: rotate(90deg); }
+  @media (max-width: 640px) {
+    .summary-total .num { font-size: 24px; }
+  }
+  .stage-tab {
+    flex: 1; text-align: center; padding: 14px 8px; font-size: 13px; font-weight: 600;
+    color: rgba(255,255,255,0.55); position: relative; cursor: pointer;
+  }
+  .stage-tab.active { color: #fff; }
+  .stage-tab.active::after {
+    content: ""; position: absolute; left: 20%; right: 20%; bottom: 0; height: 3px; background: var(--accent); border-radius: 2px;
+  }
+  .stage-tab .num {
+    display: inline-block; width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,0.15);
+    line-height: 20px; font-size: 11px; margin-right: 6px;
+  }
+  .stage-tab.active .num { background: var(--accent); color: #fff; }
+  .price-tag { font-variant-numeric: tabular-nums; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); border: 2px dashed var(--line); border-radius: 12px; background: #fff; }
+  .num-mono { font-variant-numeric: tabular-nums; }
+
+  /* Stepper */
+  .stepper { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; background: #fff; overflow: hidden; }
+  .stepper button { background: transparent; border: none; width: 38px; height: 40px; font-size: 20px; font-weight: 600; color: var(--ink); cursor: pointer; line-height: 1; touch-action: manipulation; }
+  .stepper button:hover { background: var(--bg); }
+  .stepper button:active { background: var(--line); }
+  .stepper input { border: none; text-align: center; width: 100%; min-width: 0; height: 40px; font-size: 15px; font-weight: 600; color: var(--ink); outline: none; font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+  .stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+  /* Chip selector */
+  .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { padding: 9px 14px; border: 1.5px solid var(--line); border-radius: 8px; background: #fff; font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer; transition: all .12s; font-variant-numeric: tabular-nums; min-width: 48px; text-align: center; user-select: none; }
+  .chip:hover { border-color: var(--accent); }
+  .chip.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+  /* Collapsed door card row */
+  .door-collapsed { padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: background .12s; }
+  .door-collapsed:hover { background: #FAFAFB; }
+  .door-collapsed .badge-ink { flex-shrink: 0; }
+  .door-collapsed .info { flex: 1; min-width: 0; }
+  .door-collapsed .room-name { font-weight: 700; font-size: 15px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .door-collapsed .meta { font-size: 12px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .door-collapsed .price-block { text-align: right; flex-shrink: 0; }
+  .door-collapsed .price-block .price-tag { font-weight: 700; font-size: 15px; color: var(--accent-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .door-collapsed .price-block .ks { display: block; font-size: 11px; color: var(--muted); font-weight: 500; }
+  .door-collapsed .open-icon { color: var(--muted); flex-shrink: 0; }
+
+  /* Icon buttons */
+  .icon-btn { background: transparent; border: none; padding: 8px; border-radius: 8px; cursor: pointer; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; transition: all .12s; }
+  .icon-btn:hover { background: var(--bg); color: var(--ink); }
+  .icon-btn.danger:hover { background: #FCEEEE; color: #B43A3A; }
+
+  /* FAB */
+  .fab {
+    position: fixed; right: 16px; bottom: 84px; z-index: 25;
+    width: 56px; height: 56px; border-radius: 50%; border: none;
+    background: var(--accent); color: #fff; font-size: 30px; line-height: 1;
+    box-shadow: 0 8px 24px rgba(227,6,19,0.4), 0 4px 8px rgba(0,0,0,0.1);
+    cursor: pointer; display: none; align-items: center; justify-content: center;
+  }
+  .fab:hover { background: var(--accent-2); }
+  .fab:active { transform: translateY(1px); }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(10px);
+    background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 999px;
+    font-size: 13px; font-weight: 500; opacity: 0; pointer-events: none;
+    transition: all .25s; z-index: 50; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Responsive: keep doors stacked vertically (single column) */
+  @media (min-width: 900px) {
+    .fab { display: none !important; }
+  }
+  @media (min-width: 640px) {
+    .fab { right: 24px; bottom: 24px; }
+  }
+  /* Bottom bar on tablet too */
+  .bottom-bar { display: block; }
+  @media (min-width: 1024px) {
+    .bottom-bar { display: none; }
+    body { padding-bottom: 0 !important; }
+  }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- TOP BAR -->
+<header class="section-header sticky top-0 z-30 shadow-md">
+  <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="bg-white rounded-lg px-3 py-2 flex items-center" style="box-shadow: 0 1px 0 rgba(0,0,0,0.05);">
+        <img src="rwadoor-logo.jpg" alt="RWAdoor" style="height: 26px; display:block;" />
+      </div>
+      <div class="hidden sm:block">
+        <div class="text-white/80 text-xs uppercase tracking-wider leading-tight">Kalkulátor</div>
+        <div class="text-white/50 text-[11px] leading-tight">cenových ponúk pre montáž dverí</div>
+      </div>
+    </div>
+    <div class="text-right flex items-center gap-3">
+      <button onclick="resetAll()" class="text-white/80 hover:text-white text-xs inline-flex items-center gap-1.5 border border-white/20 hover:border-white/50 rounded-md px-2.5 py-1.5 transition-colors" title="Začať novú ponuku">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        Nová
+      </button>
+      <div>
+        <div class="text-white/60 text-[10px] uppercase tracking-wider">Ponuka č.</div>
+        <div id="topQuoteNo" class="text-white font-semibold num-mono text-sm">—</div>
+      </div>
+    </div>
+  </div>
+  <!-- stage tabs -->
+  <div class="max-w-5xl mx-auto flex border-t border-white/10">
+    <div class="stage-tab active" data-stage="1" onclick="scrollToStage(1)"><span class="num">1</span>Zákazník</div>
+    <div class="stage-tab" data-stage="2" onclick="scrollToStage(2)"><span class="num">2</span>Dvere</div>
+    <div class="stage-tab" data-stage="3" onclick="scrollToStage(3)"><span class="num">3</span>Sumár & PDF</div>
+  </div>
+</header>
+
+<main class="max-w-5xl mx-auto px-3 sm:px-5 py-5 pb-32">
+
+  <!-- ===== SECTION 1: ZÁKAZNÍK ===== -->
+  <section id="stage-1" class="mb-8">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-8 h-8 rounded-md accent-bg text-white font-bold flex items-center justify-center">1</div>
+      <h2 class="text-xl sm:text-2xl font-bold">Zákazník</h2>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="sm:col-span-2">
+        <label class="field-label">Meno / Firma</label>
+        <input id="custName" class="input" placeholder="napr. Ján Novák / Firma s.r.o." />
+      </div>
+      <div class="sm:col-span-2">
+        <label class="field-label">Adresa montáže</label>
+        <input id="custAddress" class="input" placeholder="Ulica, mesto, PSČ" />
+      </div>
+      <div>
+        <label class="field-label">Telefón</label>
+        <input id="custPhone" class="input" placeholder="+421 ..." inputmode="tel" />
+      </div>
+      <div>
+        <label class="field-label">E-mail</label>
+        <input id="custEmail" class="input" placeholder="meno@domena.sk" inputmode="email" />
+      </div>
+      <div>
+        <label class="field-label">Dátum zamerania</label>
+        <input id="surveyDate" type="date" class="input" />
+      </div>
+      <div>
+        <label class="field-label">Dátum ponuky</label>
+        <input id="quoteDate" type="date" class="input" />
+      </div>
+      <div>
+        <label class="field-label">Platnosť ponuky</label>
+        <select id="quoteValidity" class="select">
+          <option value="7">7 dní</option>
+          <option value="14" selected>14 dní</option>
+          <option value="30">30 dní</option>
+        </select>
+      </div>
+      <div class="sm:col-span-2">
+        <label class="flex items-center gap-3 cursor-pointer select-none py-1">
+          <input type="checkbox" id="custB2B" class="w-4 h-4 accent-[color:var(--accent)]" onchange="updateSummary()" />
+          <span class="field-label !mb-0">Prenesená daňová povinnosť (B2B / Firma)</span>
+        </label>
+        <p class="text-[11px] text-[color:var(--muted)] mt-1">Fakturácia bez DPH — daň odvádza odberateľ (§ 69 ods. 12 zákona o DPH)</p>
+      </div>
+
+      <div class="sm:col-span-2">
+        <label class="field-label">Interné poznámky montéra <span class="text-[10px] font-normal normal-case text-[color:var(--muted)]">(nezobrazí sa v PDF)</span></label>
+        <textarea id="internalNotes" class="input" rows="2" placeholder="Termín, kontakt na bytovku, kód brány…"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SECTION 2: DVERE ===== -->
+  <section id="stage-2" class="mb-8">
+    <div class="flex items-center gap-3 mb-4 justify-between flex-wrap">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-md accent-bg text-white font-bold flex items-center justify-center">2</div>
+        <h2 class="text-xl sm:text-2xl font-bold">Dvere</h2>
+        <span id="doorCountBadge" class="pill">0 dverí</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="btn btn-ghost text-sm !py-2" onclick="collapseAll()" title="Zbaliť všetky">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+          <span class="hidden sm:inline">Zbaliť</span>
+        </button>
+        <button class="btn btn-secondary text-sm !py-2" onclick="addDoor()">
+          <span class="text-lg leading-none">+</span> Pridať
+        </button>
+      </div>
+    </div>
+
+    <div id="doorsList" class="doors-grid space-y-4"></div>
+
+    <button class="btn btn-primary w-full mt-4" onclick="addDoor()">
+      <span class="text-xl leading-none">+</span> Pridať ďalšie dvere
+    </button>
+  </section>
+
+  <!-- ===== SECTION 3: SUMÁR ===== -->
+  <section id="stage-3" class="mb-8">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-8 h-8 rounded-md accent-bg text-white font-bold flex items-center justify-center">3</div>
+      <h2 class="text-xl sm:text-2xl font-bold">Sumár & PDF</h2>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-6 space-y-4">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="summary-row" style="border:none;background:#FAF8F4;border-radius:8px;padding:12px 14px;flex-direction:column;align-items:flex-start;gap:2px;">
+          <div class="text-xs uppercase tracking-wider text-[color:var(--muted)] font-semibold">Počet dverí</div>
+          <div id="sumDoors" class="text-2xl font-bold num-mono">0</div>
+        </div>
+        <div class="summary-row" style="border:none;background:#FAF8F4;border-radius:8px;padding:12px 14px;flex-direction:column;align-items:flex-start;gap:2px;">
+          <div class="text-xs uppercase tracking-wider text-[color:var(--muted)] font-semibold">Pozícií</div>
+          <div id="sumLines" class="text-2xl font-bold num-mono">0</div>
+        </div>
+      </div>
+
+      <div class="space-y-1">
+        <div class="summary-row"><span>Materiál spolu bez DPH</span><span id="sumMaterial" class="num-mono font-semibold">0.00 €</span></div>
+        <div class="summary-row"><span>Práce spolu bez DPH</span><span id="sumWork" class="num-mono font-semibold">0.00 €</span></div>
+        <div class="summary-row"><span class="font-semibold">Spolu bez DPH</span><span id="sumNet" class="num-mono font-bold">0.00 €</span></div>
+        <div class="summary-row"><span id="sumVatLabel">DPH 20%</span><span id="sumVat" class="num-mono font-semibold">0.00 €</span></div>
+      </div>
+
+      <div class="summary-total">
+        <div>
+          <div class="text-xs uppercase tracking-wider text-white/60 font-semibold" id="sumGrossLabel">Celkom s DPH</div>
+          <div class="text-xs text-white/50 mt-0.5">vrátane všetkých príplatkov a prác</div>
+        </div>
+        <div class="num" id="sumGross">0.00 €</div>
+      </div>
+
+      <details class="bg-[color:var(--bg)] rounded-lg p-3" open>
+        <summary class="flex items-center justify-between font-semibold text-sm">
+          <span class="flex items-center gap-2"><span class="chevron">›</span> Rozpis pozícií</span>
+          <span class="text-xs text-[color:var(--muted)] font-normal">(náhľad PDF)</span>
+        </summary>
+        <div class="mt-3 table-wrap">
+          <table class="lines">
+            <thead>
+              <tr>
+                <th style="width:32px;">Č.</th>
+                <th>Miestnosť / Popis</th>
+                <th class="num">Ks</th>
+                <th class="num">Cena/ks</th>
+                <th class="num">Spolu</th>
+              </tr>
+            </thead>
+            <tbody id="linesBody">
+              <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px;">Žiadne položky. Pridajte dvere v sekcii 2.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+        <button class="btn btn-primary w-full text-base py-3" onclick="generatePDF()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
+          Cenová ponuka (PDF)
+        </button>
+        <button class="btn w-full text-base py-3" style="background:#2d6a4f;color:#fff;" onclick="generateOrderPDF()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Objednávkový list (PDF)
+        </button>
+
+      <div class="text-center mt-2">
+        <button onclick="resetAll()" class="text-sm text-[color:var(--muted)] hover:text-red-500 transition-colors inline-flex items-center gap-1.5">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          Nová zákazka (vymazať všetko)
+        </button>
+      </div>
+
+      <p class="text-xs text-center text-[color:var(--muted)]">
+        Materiál: Doornite (cenník 2026/1) | platný od 19.1.2026
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<!-- STICKY BOTTOM SUMMARY BAR (mobile + tablet) -->
+<div class="bottom-bar fixed bottom-0 inset-x-0 bg-[color:var(--ink)] text-white z-20 shadow-2xl">
+  <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+    <div class="min-w-0">
+      <div class="text-[10px] uppercase text-white/50 tracking-wider">Celkom s DPH</div>
+      <div id="stickyGross" class="text-xl font-bold accent-text num-mono">0.00 €</div>
+    </div>
+    <div class="flex items-center gap-2 flex-shrink-0">
+      <button class="btn btn-ghost !py-2 !px-3 text-sm" onclick="addDoor()" title="Pridať dvere">
+        <span class="text-lg leading-none">+</span> <span class="hidden sm:inline">Dvere</span>
+      </button>
+      <button class="btn btn-primary text-sm !py-2.5 !px-4" onclick="generatePDF()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        PDF
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Floating Action Button (mobile only) -->
+<button class="fab" onclick="addDoor()" title="Pridať dvere" id="fabBtn">+</button>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<!-- TEMPLATE: door card (expanded) -->
+<template id="doorTemplate">
+  <div class="door-card" data-door>
+    <!-- Collapsed header (visible when collapsed) -->
+    <div class="door-collapsed" data-collapsed-row style="display:none;">
+      <span class="badge-ink">#<span data-door-idx>1</span></span>
+      <div class="info">
+        <div class="room-name" data-collapsed-name>Miestnosť</div>
+        <div class="meta" data-collapsed-meta>—</div>
+      </div>
+      <div class="price-block">
+        <div class="price-tag" data-collapsed-price>0.00 €</div>
+        <span class="ks" data-collapsed-qty>1 ks</span>
+      </div>
+      <svg class="open-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </div>
+
+    <!-- Expanded body -->
+    <div class="p-4 sm:p-5" data-expanded-body>
+      <div class="mb-4">
+        <label class="field-label">Miestnosť</label>
+        <div class="flex items-center gap-2">
+          <span class="badge-ink flex-shrink-0">#<span data-door-idx-2>1</span></span>
+          <input class="input font-semibold !text-base" data-room placeholder="napr. Obývačka" />
+          <div class="flex items-center gap-1 flex-shrink-0">
+            <button class="icon-btn" data-collapse title="Zbaliť">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+            </button>
+            <button class="icon-btn" data-duplicate title="Duplikovať">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </button>
+            <button class="icon-btn danger" data-remove title="Zmazať">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Šírka (chip row) -->
+      <div class="mb-4">
+        <label class="field-label">Šírka (cm)</label>
+        <div class="chip-row" data-width-chips>
+          <button type="button" class="chip" data-w="60">60</button>
+          <button type="button" class="chip" data-w="70">70</button>
+          <button type="button" class="chip active" data-w="80">80</button>
+          <button type="button" class="chip" data-w="90">90</button>
+          <button type="button" class="chip" data-w="100">100</button>
+          <button type="button" class="chip" data-w="110">110</button>
+        </div>
+      </div>
+
+      <!-- Výška + Počet -->
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <label class="field-label">Výška (cm)</label>
+          <div class="seg w-full">
+            <button type="button" data-h="197" class="flex-1 active">197</button>
+            <button type="button" data-h="210" class="flex-1">210 <span class="text-[10px] opacity-60">+15%</span></button>
+          </div>
+        </div>
+        <div>
+          <label class="field-label">Počet kusov</label>
+          <div class="stepper">
+            <button type="button" data-qty-dec>−</button>
+            <input type="number" data-qty value="1" min="1" inputmode="numeric" />
+            <button type="button" data-qty-inc>+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIN + Dvojkrídlové -->
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <label class="field-label">DIN smer</label>
+          <div class="seg w-full">
+            <button type="button" data-din="L" class="flex-1 active">← Ľavé</button>
+            <button type="button" data-din="P" class="flex-1">Pravé →</button>
+          </div>
+        </div>
+        <div>
+          <label class="field-label">Prevedenie</label>
+          <div class="seg w-full">
+            <button type="button" data-wing="1" class="flex-1 active">1-krídlové</button>
+            <button type="button" data-wing="2" class="flex-1">2-krídlové <span class="text-[10px] opacity-60">+30%</span></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hrúbka steny -->
+      <div class="mb-4">
+        <label class="field-label">Hrúbka steny (cm) <span class="text-[10px] font-normal normal-case text-[color:var(--muted)]">— pre obložkové: 17-30 cm +8 €, nad 30 cm +3 €/cm</span></label>
+        <div class="stepper" style="max-width: 160px;">
+          <button type="button" data-wall-dec>−</button>
+          <input type="number" data-wall value="12" min="6" max="60" inputmode="numeric" />
+          <button type="button" data-wall-inc>+</button>
+        </div>
+      </div>
+
+      <!-- Typ dverí: kaskáda Séria → Variant -->
+      <div class="mb-4">
+        <label class="field-label">Typ dverí</label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <select class="select" data-doorfamily>
+            <option value="">— Séria —</option>
+          </select>
+          <select class="select" data-doortype>
+            <option value="">— Variant —</option>
+          </select>
+        </div>
+        <div class="hint num-mono" data-doorprice></div>
+      </div>
+
+      <!-- Zárubňa -->
+      <div class="mb-4">
+        <label class="field-label">Zárubňa</label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <select class="select" data-framefamily>
+            <option value="">— bez zárubne —</option>
+            <option value="oblozkova">Obložková zárubňa</option>
+            <option value="ocelova">Oceľová zárubňa</option>
+          </select>
+          <select class="select" data-frame>
+            <option value="">— vyberte typ —</option>
+          </select>
+        </div>
+        <div class="hint num-mono" data-frameprice></div>
+      </div>
+
+      <!-- Kovanie -->
+      <div class="mb-4">
+        <label class="field-label">Kovanie / kľučka</label>
+        <div class="grid grid-cols-3 gap-2">
+          <input class="input col-span-2" data-handle placeholder="napr. AGB Wave nikel mat" />
+          <input type="number" class="input" data-handleprice placeholder="€ / ks" min="0" step="0.01" inputmode="decimal" />
+        </div>
+      </div>
+
+      <!-- Práce -->
+      <div class="mb-4">
+        <label class="field-label">Práce</label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" data-works></div>
+      </div>
+
+      <!-- Príplatky -->
+      <details class="mb-4">
+        <summary class="text-sm font-semibold text-[color:var(--accent-2)] flex items-center gap-2 py-1">
+          <span class="chevron">›</span> Príplatky (zasklenie, RAL, zámok…)
+          <span class="hint ml-auto" data-extras-count></span>
+        </summary>
+        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2" data-extras></div>
+      </details>
+
+      <!-- Zameranie stavebného otvoru -->
+      <details class="mb-4" data-survey-details>
+        <summary class="text-sm font-semibold text-[color:var(--accent-2)] flex items-center gap-2 py-1">
+          <span class="chevron">›</span> Zameranie stavebného otvoru
+          <span class="hint ml-auto" data-survey-badge></span>
+        </summary>
+        <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="field-label">Šírka otvoru (mm) <span class="text-[10px] font-normal text-[color:var(--muted)]">— najväčší nameraný</span></label>
+            <input type="number" class="input" data-survey-sirka placeholder="napr. 900" inputmode="numeric" />
+          </div>
+          <div>
+            <label class="field-label">Výška otvoru (mm) <span class="text-[10px] font-normal text-[color:var(--muted)]">— najväčší nameraný</span></label>
+            <input type="number" class="input" data-survey-vyska placeholder="napr. 2030" inputmode="numeric" />
+          </div>
+          <div>
+            <label class="field-label">Hrúbka steny (mm) <span class="text-[10px] font-normal text-[color:var(--muted)]">— najväčší nameraný</span></label>
+            <input type="number" class="input" data-survey-hrubka placeholder="napr. 150" inputmode="numeric" />
+          </div>
+        </div>
+        <div class="mt-3">
+          <label class="field-label">Stav otvoru</label>
+          <select class="select" data-survey-stav>
+            <option value="">— vyberte —</option>
+            <option value="nova">Nová stavba</option>
+            <option value="rekonstrukcia">Rekonštrukcia</option>
+            <option value="kovova">Existujúca kovová zárubňa</option>
+          </select>
+        </div>
+        <div class="mt-3">
+          <label class="field-label">Poznámka k otvoru</label>
+          <textarea class="input" data-survey-poznamka rows="2" placeholder="napr. krivý otvor, ešte bez omietky…"></textarea>
+        </div>
+      </details>
+
+      <!-- Poznámka -->
+      <div class="mb-4">
+        <label class="field-label">Poznámka k tejto izbe</label>
+        <textarea class="input" data-note rows="2" placeholder="napr. farba RAL 9010, atyp rozmer…"></textarea>
+      </div>
+
+      <div class="room-total">
+        <div class="label">Cena tejto izby</div>
+        <div class="val" data-roomtotal>0.00 €</div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+// ====== LOGO ======
+const LOGO_B64 = "data:image/jpeg;base64,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";
+
+// ====== PRICES ======
+// Štruktúra: pre každý typ dverí sú ceny {s60_90, s100_110, s2kr}
+// s60_90 = cena 1-krídlové 60-90 cm
+// s100_110 = cena 1-krídlové 100-110 cm  
+// s2kr = cena dvojkrídlové 125-185 cm
+// Ak s100_110 alebo s2kr nie je v cenníku, hodnota = null
+const PRICES = {
+  dvere: {
+    // CLARA (biely lak prémiový)
+    "Clara – plné":                    { s60_90: 188, s100_110: 188, s2kr: 406 },
+    "Clara – Vertika":                 { s60_90: 243, s100_110: 243, s2kr: 516 },
+    "Clara – Verta":                   { s60_90: 243, s100_110: 243, s2kr: 516 },
+    "Clara – Linea":                   { s60_90: 243, s100_110: 243, s2kr: 516 },
+    "Clara – presklené 3/4":           { s60_90: 243, s100_110: 243, s2kr: 516 },
+    "Clara – presklené 4/5":           { s60_90: 251, s100_110: 251, s2kr: 533 },
+    // HPL LAMINÁT
+    "HPL Laminát – plné (DTD)":        { s60_90: 245, s100_110: 285, s2kr: 520 },
+    "HPL Laminát – presklené 1/3":     { s60_90: 298, s100_110: 396, s2kr: 627 },
+    "HPL Laminát – presklené 2/3":     { s60_90: 298, s100_110: 396, s2kr: 627 },
+    "HPL Laminát – presklené 3/4":     { s60_90: 307, s100_110: 419, s2kr: 643 },
+    "HPL Laminát – presklené 4/5":     { s60_90: 315, s100_110: 443, s2kr: 659 },
+    "HPL Laminát – Vertika":           { s60_90: 307, s100_110: 419, s2kr: 643 },
+    "HPL Laminát – Linea":             { s60_90: 307, s100_110: 419, s2kr: 643 },
+    // HPL ULTRAMAT
+    "HPL Ultramat – plné (DTD)":       { s60_90: 343, s100_110: 384, s2kr: 716 },
+    "HPL Ultramat – presklené 1/3":    { s60_90: 396, s100_110: 494, s2kr: 822 },
+    "HPL Ultramat – presklené 2/3":    { s60_90: 396, s100_110: 494, s2kr: 822 },
+    "HPL Ultramat – presklené 3/4":    { s60_90: 404, s100_110: 516, s2kr: 839 },
+    "HPL Ultramat – presklené 4/5":    { s60_90: 412, s100_110: 541, s2kr: 855 },
+    "HPL Ultramat – Vertika":          { s60_90: 404, s100_110: 516, s2kr: 839 },
+    "HPL Ultramat – Linea":            { s60_90: 404, s100_110: 516, s2kr: 839 },
+    // HPL RÁMOVÉ (Britannia, Caledonia, Victoria) – iba 60-90, bez 2kr
+    "HPL Rámové – Britannia panel":    { s60_90: 159, s100_110: null, s2kr: null },
+    "HPL Rámové – Britannia sklo":     { s60_90: 165, s100_110: null, s2kr: null },
+    "HPL Rámové – Caledonia panel":    { s60_90: 159, s100_110: null, s2kr: null },
+    "HPL Rámové – Caledonia sklo":     { s60_90: 165, s100_110: null, s2kr: null },
+    "HPL Rámové – Victoria panel":     { s60_90: 159, s100_110: null, s2kr: null },
+    "HPL Rámové – Victoria sklo":      { s60_90: 165, s100_110: null, s2kr: null },
+    // CPL ŠTANDARD
+    "CPL Štandard – plné (voština)":       { s60_90: 147, s100_110: 180, s2kr: 324 },
+    "CPL Štandard – presklené 1/3":        { s60_90: 193, s100_110: 284, s2kr: 419 },
+    "CPL Štandard – presklené 2/3":        { s60_90: 193, s100_110: 284, s2kr: 419 },
+    "CPL Štandard – presklené 3/4 (DTD)":  { s60_90: 223, s100_110: 335, s2kr: 476 },
+    "CPL Štandard – presklené 4/5 (DTD)":  { s60_90: 231, s100_110: 359, s2kr: 492 },
+    "CPL Štandard – Slim / Slim A / Slim B":{ s60_90: 202, s100_110: 307, s2kr: 435 },
+    "CPL Štandard – Linea / Lineus":       { s60_90: 202, s100_110: 307, s2kr: 435 },
+    "CPL Štandard – Verta / Vertika":      { s60_90: 202, s100_110: 307, s2kr: 435 },
+    "CPL Štandard – Vertus / Vertikus":    { s60_90: 202, s100_110: 307, s2kr: 435 },
+    "CPL Štandard – Quadra / Axis":        { s60_90: 208, s100_110: 312, s2kr: 447 },
+    "CPL Štandard – Giga / Stripe":        { s60_90: 208, s100_110: 312, s2kr: 447 },
+    "CPL Štandard – Dominant / 4/5 Plus (DTD)": { s60_90: 239, s100_110: 367, s2kr: 508 },
+    "CPL Štandard – Panorama / Superior (DTD)":  { s60_90: 239, s100_110: 367, s2kr: 508 },
+    "CPL Štandard – ALU II / ALU IV (DTD)":      { s60_90: 255, s100_110: 396, s2kr: 541 },
+    "CPL Štandard – ALU Linea / ALU Vertika (DTD)": { s60_90: 284, s100_110: 420, s2kr: 598 },
+    "CPL Štandard – Porto (DTD)":          { s60_90: 320, s100_110: 402, s2kr: 672 },
+    // CPL PREMIUM
+    "CPL Premium – plné (voština)":        { s60_90: 157, s100_110: 189, s2kr: 345 },
+    "CPL Premium – presklené 1/3":         { s60_90: 204, s100_110: 293, s2kr: 439 },
+    "CPL Premium – presklené 2/3":         { s60_90: 204, s100_110: 293, s2kr: 439 },
+    "CPL Premium – presklené 3/4 (DTD)":   { s60_90: 233, s100_110: 345, s2kr: 496 },
+    "CPL Premium – presklené 4/5 (DTD)":   { s60_90: 241, s100_110: 369, s2kr: 512 },
+    "CPL Premium – Slim / Slim A / Slim B": { s60_90: 212, s100_110: 316, s2kr: 455 },
+    "CPL Premium – Linea / Lineus":        { s60_90: 212, s100_110: 316, s2kr: 455 },
+    "CPL Premium – Verta / Vertika":       { s60_90: 212, s100_110: 316, s2kr: 455 },
+    "CPL Premium – Vertus / Vertikus":     { s60_90: 212, s100_110: 316, s2kr: 455 },
+    "CPL Premium – Quadra / Axis":         { s60_90: 219, s100_110: 323, s2kr: 467 },
+    "CPL Premium – Giga / Stripe":         { s60_90: 219, s100_110: 323, s2kr: 467 },
+    "CPL Premium – Dominant / 4/5 Plus (DTD)": { s60_90: 249, s100_110: 377, s2kr: 528 },
+    "CPL Premium – Panorama / Superior (DTD)":  { s60_90: 249, s100_110: 377, s2kr: 528 },
+    "CPL Premium – ALU II / ALU IV (DTD)":      { s60_90: 265, s100_110: 407, s2kr: 561 },
+    "CPL Premium – ALU Linea / ALU Vertika (DTD)": { s60_90: 293, s100_110: 439, s2kr: 619 },
+    "CPL Premium – Porto (DTD)":           { s60_90: 331, s100_110: 412, s2kr: 692 },
+    // CPL DELUXE
+    "CPL Deluxe – plné (voština)":         { s60_90: 163, s100_110: 196, s2kr: 357 },
+    "CPL Deluxe – presklené 1/3":          { s60_90: 211, s100_110: 300, s2kr: 451 },
+    "CPL Deluxe – presklené 2/3":          { s60_90: 211, s100_110: 300, s2kr: 451 },
+    "CPL Deluxe – presklené 3/4 (DTD)":    { s60_90: 239, s100_110: 351, s2kr: 508 },
+    "CPL Deluxe – presklené 4/5 (DTD)":    { s60_90: 247, s100_110: 376, s2kr: 524 },
+    "CPL Deluxe – Slim / Slim A / Slim B":  { s60_90: 219, s100_110: 323, s2kr: 467 },
+    "CPL Deluxe – Linea / Lineus":         { s60_90: 219, s100_110: 323, s2kr: 467 },
+    "CPL Deluxe – Verta / Vertika":        { s60_90: 219, s100_110: 323, s2kr: 467 },
+    "CPL Deluxe – Vertus / Vertikus":      { s60_90: 219, s100_110: 323, s2kr: 467 },
+    "CPL Deluxe – Quadra / Axis":          { s60_90: 224, s100_110: 328, s2kr: 480 },
+    "CPL Deluxe – Giga / Stripe":          { s60_90: 224, s100_110: 328, s2kr: 480 },
+    "CPL Deluxe – Dominant / 4/5 Plus (DTD)": { s60_90: 255, s100_110: 384, s2kr: 541 },
+    "CPL Deluxe – Panorama / Superior (DTD)":  { s60_90: 255, s100_110: 384, s2kr: 541 },
+    "CPL Deluxe – ALU II / ALU IV (DTD)":      { s60_90: 272, s100_110: 412, s2kr: 573 },
+    "CPL Deluxe – ALU Linea / ALU Vertika (DTD)": { s60_90: 300, s100_110: 412, s2kr: 631 },
+    "CPL Deluxe – Porto (DTD)":            { s60_90: 337, s100_110: 419, s2kr: 704 },
+    // CPL ULTRAMAT
+    "CPL Ultramat – plné (voština)":       { s60_90: 208, s100_110: 241, s2kr: 447 },
+    "CPL Ultramat – presklené 1/3":        { s60_90: 255, s100_110: 345, s2kr: 541 },
+    "CPL Ultramat – presklené 2/3":        { s60_90: 255, s100_110: 345, s2kr: 541 },
+    "CPL Ultramat – presklené 3/4 (DTD)":  { s60_90: 284, s100_110: 396, s2kr: 598 },
+    "CPL Ultramat – presklené 4/5 (DTD)":  { s60_90: 292, s100_110: 420, s2kr: 614 },
+    "CPL Ultramat – Slim / Slim A / Slim B":{ s60_90: 263, s100_110: 367, s2kr: 557 },
+    "CPL Ultramat – Linea / Lineus":       { s60_90: 263, s100_110: 367, s2kr: 557 },
+    "CPL Ultramat – Verta / Vertika":      { s60_90: 263, s100_110: 367, s2kr: 557 },
+    "CPL Ultramat – Vertus / Vertikus":    { s60_90: 263, s100_110: 367, s2kr: 557 },
+    "CPL Ultramat – Quadra / Axis":        { s60_90: 269, s100_110: 373, s2kr: 569 },
+    "CPL Ultramat – Giga / Stripe":        { s60_90: 269, s100_110: 373, s2kr: 569 },
+    "CPL Ultramat – Dominant / 4/5 Plus (DTD)": { s60_90: 300, s100_110: 429, s2kr: 631 },
+    "CPL Ultramat – Panorama / Superior (DTD)":  { s60_90: 300, s100_110: 429, s2kr: 631 },
+    "CPL Ultramat – ALU II / ALU IV (DTD)":      { s60_90: 316, s100_110: 457, s2kr: 663 },
+    "CPL Ultramat – ALU Linea / ALU Vertika (DTD)": { s60_90: 345, s100_110: 490, s2kr: 720 },
+    "CPL Ultramat – Porto (DTD)":          { s60_90: 390, s100_110: 431, s2kr: 810 },
+    // FÓLIA
+    "Fólia – plné (voština)":             { s60_90: 100, s100_110: 133, s2kr: 231 },
+    "Fólia – presklené 1/3":              { s60_90: 147, s100_110: 237, s2kr: 324 },
+    "Fólia – presklené 2/3":              { s60_90: 147, s100_110: 237, s2kr: 324 },
+    "Fólia – presklené 3/4 (DTD)":        { s60_90: 176, s100_110: 288, s2kr: 382 },
+    "Fólia – presklené 4/5 (DTD)":        { s60_90: 184, s100_110: 312, s2kr: 398 },
+    "Fólia – Linea / Vertika":            { s60_90: 155, s100_110: 259, s2kr: 341 },
+    "Fólia – Vertikus":                   { s60_90: 155, s100_110: 259, s2kr: 341 },
+    "Fólia – Quadra":                     { s60_90: 161, s100_110: 265, s2kr: 353 },
+    "Fólia – Giga":                       { s60_90: 161, s100_110: 265, s2kr: 353 },
+    "Fólia – Dominant (DTD)":             { s60_90: 192, s100_110: 320, s2kr: 414 },
+    // BIANCA
+    "Bianca – plné (voština)":            { s60_90: 115, s100_110: 147, s2kr: 259 },
+    "Bianca – presklené 1/3":             { s60_90: 161, s100_110: 251, s2kr: 353 },
+    "Bianca – presklené 2/3":             { s60_90: 161, s100_110: 251, s2kr: 353 },
+    "Bianca – presklené 3/4 (DTD)":       { s60_90: 189, s100_110: 302, s2kr: 411 },
+    "Bianca – presklené 4/5 (DTD)":       { s60_90: 198, s100_110: 327, s2kr: 427 },
+    "Bianca – Linea / Vertika":           { s60_90: 169, s100_110: 273, s2kr: 369 },
+    "Bianca – Vertikus":                  { s60_90: 169, s100_110: 273, s2kr: 369 },
+    // BASIC
+    "Basic – plné (voština)":             { s60_90: 61, s100_110: 93, s2kr: 153 },
+    "Basic – presklené 1/3":              { s60_90: 118, s100_110: 208, s2kr: 267 },
+    "Basic – presklené 2/3":              { s60_90: 118, s100_110: 208, s2kr: 267 },
+    "Basic – presklené 3/4 (DTD)":        { s60_90: 147, s100_110: 259, s2kr: 325 },
+    "Basic – presklené 4/5 (DTD)":        { s60_90: 155, s100_110: 283, s2kr: 340 },
+    "Basic – Linea / Vertika":            { s60_90: 127, s100_110: 231, s2kr: 284 },
+    // QUATRO séria (iba 60-90 a 2kr, nie 100-110)
+    "Quatro – plné (voština)":            { s60_90: 147, s100_110: null, s2kr: null },
+    "Quatro – Linea (voština)":           { s60_90: 202, s100_110: null, s2kr: null },
+    "Quatro – Vertika (voština)":         { s60_90: 202, s100_110: null, s2kr: null },
+    // CLASSIC séria
+    "Claudius – plné (voština)":          { s60_90: 147, s100_110: null, s2kr: 325 },
+    "Socrates – plné (voština)":          { s60_90: 220, s100_110: null, s2kr: 471 },
+    "Achilles – plné (voština)":          { s60_90: 220, s100_110: null, s2kr: 471 },
+    "Hector – plné (voština)":            { s60_90: 237, s100_110: null, s2kr: 505 },
+    "Octavia – plné (voština)":           { s60_90: 237, s100_110: null, s2kr: 505 },
+    "Odysseus – plné (voština)":          { s60_90: 147, s100_110: null, s2kr: 325 },
+    "Aulida – plné (voština)":            { s60_90: 220, s100_110: null, s2kr: 471 },
+    "Elida – plné (voština)":             { s60_90: 237, s100_110: null, s2kr: 505 },
+    "Troja – plné (voština)":             { s60_90: 147, s100_110: null, s2kr: 325 },
+    // QUATRO / CLASSIC ďalšie
+    "Tampa – plné (voština)":             { s60_90: 147, s100_110: null, s2kr: 324 },
+    "Tampa – sklo (DTD)":                 { s60_90: 231, s100_110: null, s2kr: 492 },
+    "Oregon – plné (voština)":            { s60_90: 147, s100_110: null, s2kr: 324 },
+    "Oregon – sklo (voština)":            { s60_90: 210, s100_110: null, s2kr: 451 },
+    "Bordeaux – plné (voština)":          { s60_90: 147, s100_110: null, s2kr: 324 },
+    "Bordeaux – Vertika (voština)":       { s60_90: 202, s100_110: null, s2kr: 435 },
+    "Dakota – plné (voština)":            { s60_90: 147, s100_110: null, s2kr: null },
+    "Dakota – sklo (DTD)":                { s60_90: 239, s100_110: null, s2kr: null },
+  },
+  zarubne: {
+    "Obložková CPL Štandard": 120,
+    "Obložková CPL Štandard (na tupo)": 155,
+    "Obložková CPL Premium": 124,
+    "Obložková CPL Premium (na tupo)": 159,
+    "Obložková CPL Deluxe": 128,
+    "Obložková CPL Deluxe (na tupo)": 163,
+    "Obložková CPL Ultramat": 165,
+    "Obložková CPL Ultramat (na tupo)": 200,
+    "Obložková Fólia / biela fólia": 120,
+    "Obložková Fólia / biela fólia (na tupo)": 155,
+    "Obložková lakovaná (biely lak / RAL prípl.)": 120,
+    "Obložková lakovaná (biely lak / na tupo)": 155,
+    "Oceľová YH 75mm (1-dielna)": 67,
+    "Oceľová YH 100mm (1-dielna)": 73,
+    "Oceľová YH 125mm (1-dielna)": 80,
+    "Oceľová YH 150mm (1-dielna)": 86,
+    "Oceľová HP 100mm (2-dielna, 60-90)": 159,
+    "Oceľová HP 125mm (2-dielna, 60-90)": 166,
+    "Oceľová HP 150mm (2-dielna, 60-90)": 167,
+    "Oceľová HP 175mm (2-dielna, 60-90)": 171,
+    "Oceľová HP 200mm (2-dielna, 60-90)": 176,
+  },
+  priplatky: {
+    "vyska210_percent": 15,
+    // Stena: cenník: 6-16 cm = základ, 17-30 = +8 € paušál, nad 30 = +3 €/cm od 30
+    "stena_17_30_pausal": 8,
+    "stena_nad_30_za_cm": 3,
+    "dvojkridlove_zarubna_percent": 30,
+    "zmena_zamku_cylindricky_FAB": 3,
+    "zmena_zamku_WC": 3,
+    "zmena_zamku_celokovovy": 7,
+    "cierny_zasklievaci_ramcek": 20.40,
+    "ALU_ramcek_Vertika_Linea": 61.20,
+    "mastercarre_sklo_pripl": 10.20,
+    "zarubna_vyska_210_pripl": 24.50,
+    "zarubna_atypicka_sirka": 21,
+    "zarubna_zaklop_85mm": 24.50,
+    "ocelova_zarubna_pripl_pp": 14.30,
+    "ocelova_zarubna_vyska_210": 20.40,
+    "nastrek_RAL_plne": 60,
+    "nastrek_RAL_presklene": 120,
+    "nastrek_zarubna_biela1": 60,
+    "4_pant_nosnost_PP": 12.20,
+    "bezfalcova_uprava_2kr_skryta_zarubna": 102,
+    "magneticky_zamok_strieborny": 35,
+    "magneticky_zamok_cierny": 41,
+  },
+  prace: {
+    "Demontáž starých dverí": 40,
+    "Odvoz a likvidácia starých dverí": 20,
+    "Montáž obložkovej zárubne": 65,
+    "Montáž oceľovej zárubne (zamurovanie)": 80,
+    "Montáž oceľovej zárubne (dodatočná montáž HP)": 70,
+    "Montáž dverného krídla": 50,
+    "Montáž kľučky / kovania": 15,
+    "Tmelenie a úprava ostenia": 35,
+    "Skrátenie dverného krídla": 25,
+    "Montáž dvernej zarážky": 8,
+    "Montáž dverného zatvárača": 30,
+  }
+};
+
+// Extras list (subset of príplatky exposed as togglable extras on the card)
+const EXTRA_FLAGS = [
+  { key: "zmena_zamku_cylindricky_FAB", label: "Zámok: cylindrický FAB" },
+  { key: "zmena_zamku_WC", label: "Zámok: WC" },
+  { key: "zmena_zamku_celokovovy", label: "Zámok: celokovový" },
+  { key: "cierny_zasklievaci_ramcek", label: "Čierny zasklievací rámček" },
+  { key: "ALU_ramcek_Vertika_Linea", label: "ALU rámček (Vertika / Linea)" },
+  { key: "mastercarre_sklo_pripl", label: "Mastercarré sklo" },
+  { key: "nastrek_RAL_plne", label: "Nástrek RAL – plné" },
+  { key: "nastrek_RAL_presklene", label: "Nástrek RAL – presklené" },
+  { key: "nastrek_zarubna_biela1", label: "Nástrek zárubne (biela)" },
+  { key: "4_pant_nosnost_PP", label: "4. pánt (nosnosť)" },
+  { key: "magneticky_zamok_strieborny", label: "Magnetický zámok – strieborný" },
+  { key: "magneticky_zamok_cierny", label: "Magnetický zámok – čierny" },
+  { key: "zarubna_vyska_210_pripl", label: "Zárubňa – výška 210" },
+  { key: "zarubna_atypicka_sirka", label: "Zárubňa – atypická šírka" },
+  { key: "zarubna_zaklop_85mm", label: "Zárubňa – záklop 85mm" },
+  { key: "bezfalcova_uprava_2kr_skryta_zarubna", label: "Bezfalcová úprava / skrytá zárubňa" },
+];
+
+// ====== STATE ======
+let doors = []; // array of door state objects
+let doorSeq = 0;
+let saveTimer = null;
+
+const STORAGE_KEY = "rwadoor_state_v3";
+
+function fmt(n) {
+  return (Math.round(n * 100) / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " €";
+}
+function round2(n) { return Math.round(n * 100) / 100; }
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove("show"), 1800);
+}
+
+// ====== AUTOSAVE ======
+function saveStateDebounced() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveState, 250);
+}
+function saveState() {
+  const state = {
+    customer: {
+      name: document.getElementById("custName").value,
+      address: document.getElementById("custAddress").value,
+      phone: document.getElementById("custPhone").value,
+      email: document.getElementById("custEmail").value,
+      date: document.getElementById("quoteDate").value,
+      validity: document.getElementById("quoteValidity").value,
+      internal: document.getElementById("internalNotes").value,
+      b2b: document.getElementById("custB2B")?.checked || false,
+      surveyDate: document.getElementById("surveyDate")?.value || "",
+    },
+    doors,
+    doorSeq,
+  };
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    if (s.customer) {
+      document.getElementById("custName").value = s.customer.name || "";
+      document.getElementById("custAddress").value = s.customer.address || "";
+      document.getElementById("custPhone").value = s.customer.phone || "";
+      document.getElementById("custEmail").value = s.customer.email || "";
+      if (s.customer.date) document.getElementById("quoteDate").value = s.customer.date;
+      if (s.customer.validity) document.getElementById("quoteValidity").value = s.customer.validity;
+      document.getElementById("internalNotes").value = s.customer.internal || "";
+      if (document.getElementById("custB2B")) document.getElementById("custB2B").checked = s.customer.b2b || false;
+      if (s.customer.surveyDate && document.getElementById("surveyDate")) document.getElementById("surveyDate").value = s.customer.surveyDate;
+      updateSummary();
+    }
+    if (Array.isArray(s.doors)) {
+      doors = s.doors.map(d => ({ ...defaultDoorState(true), ...d }));
+      // make sure ids are unique and not colliding
+      doorSeq = Math.max(0, ...doors.map(d => d.id || 0));
+    }
+    return doors.length > 0;
+  } catch(e) { return false; }
+}
+
+function resetAll() {
+  if (!confirm("Naozaj začať novú ponuku? Všetky aktuálne údaje budú vymazané.")) return;
+  localStorage.removeItem(STORAGE_KEY);
+  doors = [];
+  doorSeq = 0;
+  ["custName","custAddress","custPhone","custEmail","internalNotes"].forEach(id => document.getElementById(id).value = "");
+  if (document.getElementById("custB2B")) document.getElementById("custB2B").checked = false;
+  if (document.getElementById("surveyDate")) document.getElementById("surveyDate").value = "";
+  document.getElementById("quoteDate").value = new Date().toISOString().slice(0,10);
+  document.getElementById("quoteValidity").value = "14";
+  addDoor();
+  showToast("Pripravená nová ponuka");
+}
+
+// ====== QUOTE NUMBER ======
+function getQuoteNumber() {
+  const year = new Date().getFullYear();
+  const key = "rwadoor_quote_seq_" + year;
+  let seq = parseInt(localStorage.getItem(key) || "0", 10);
+  return { year, next: seq + 1, key, current: seq };
+}
+function consumeQuoteNumber() {
+  const { year, key, current } = getQuoteNumber();
+  const used = current + 1;
+  localStorage.setItem(key, String(used));
+  return formatQuoteNumber(year, used);
+}
+function formatQuoteNumber(year, n) {
+  return `${year}-${String(n).padStart(4, "0")}`;
+}
+function refreshTopQuoteNo() {
+  const { year, next } = getQuoteNumber();
+  document.getElementById("topQuoteNo").textContent = formatQuoteNumber(year, next);
+}
+
+// ====== HELPERS: door family parsing ======
+function familyOfDoor(typeKey) {
+  if (!typeKey) return "";
+  // Family is everything before " – "
+  const idx = typeKey.indexOf(" – ");
+  return idx >= 0 ? typeKey.slice(0, idx) : typeKey;
+}
+function variantOfDoor(typeKey) {
+  if (!typeKey) return "";
+  const idx = typeKey.indexOf(" – ");
+  return idx >= 0 ? typeKey.slice(idx + 3) : "";
+}
+function listDoorFamilies() {
+  const fams = [];
+  const seen = new Set();
+  Object.keys(PRICES.dvere).forEach(k => {
+    const f = familyOfDoor(k);
+    if (!seen.has(f)) { seen.add(f); fams.push(f); }
+  });
+  return fams;
+}
+function listDoorVariants(family) {
+  return Object.entries(PRICES.dvere)
+    .filter(([k]) => familyOfDoor(k) === family)
+    .map(([k, v]) => ({ key: k, variant: variantOfDoor(k), prices: v }));
+}
+function doorBasePrice(typeKey, width, wing) {
+  const p = PRICES.dvere[typeKey];
+  if (!p) return 0;
+  if (wing === 2) {
+    if (p.s2kr !== null && p.s2kr !== undefined) return p.s2kr;
+    return p.s60_90 ? p.s60_90 * 2 : 0; // fallback: 2× jednokrídlové
+  }
+  if (width >= 100) {
+    if (p.s100_110 !== null && p.s100_110 !== undefined) return p.s100_110;
+    // s100_110 = null → tento rozmer nie je štandardný, pridaj atyp príplatok
+    return (p.s60_90 ?? 0) + (PRICES.priplatky.zarubna_atypicka_sirka ?? 21);
+  }
+  return p.s60_90 ?? 0;
+}
+function frameFamilyOf(key) {
+  if (!key) return "";
+  if (key.startsWith("Obložková")) return "oblozkova";
+  if (key.startsWith("Oceľová")) return "ocelova";
+  return "";
+}
+
+// Navrhovaný typ zárubne podľa série dverí
+function suggestedFrameKey(doorFamily) {
+  if (!doorFamily) return null;
+  const f = doorFamily.toLowerCase();
+  if (f.includes("cpl štandard") || f === "fólia" || f === "bianca" || f === "basic" || f.includes("quatro") || f.includes("classic") || f.includes("tampa") || f.includes("oregon") || f.includes("bordeaux") || f.includes("dakota") || f.includes("claudius") || f.includes("odysseus") || f.includes("troja") || f.includes("aulida") || f.includes("elida") || f.includes("octavia") || f.includes("hector") || f.includes("achilles") || f.includes("socrates")) {
+    if (f === "bianca" || f === "basic" || f.includes("quatro") || f.includes("classic") || f.includes("tampa") || f.includes("oregon") || f.includes("bordeaux") || f.includes("dakota") || f.includes("claudius") || f.includes("odysseus") || f.includes("troja") || f.includes("aulida") || f.includes("elida") || f.includes("octavia") || f.includes("hector") || f.includes("achilles") || f.includes("socrates"))
+      return "Obložková Fólia / biela fólia";
+    if (f === "fólia") return "Obložková Fólia / biela fólia";
+    if (f.includes("cpl štandard")) return "Obložková CPL Štandard";
+  }
+  if (f.includes("cpl premium")) return "Obložková CPL Premium";
+  if (f.includes("cpl deluxe")) return "Obložková CPL Deluxe";
+  if (f.includes("cpl ultramat")) return "Obložková CPL Ultramat";
+  if (f.includes("hpl laminát")) return "Obložková CPL Štandard";
+  if (f.includes("hpl ultramat") || f.includes("hpl rámové")) return "Obložková CPL Premium";
+  if (f.includes("clara")) return "Obložková lakovaná (biely lak / RAL prípl.)";
+  return null;
+}
+function listFrames(family) {
+  if (!family) return [];
+  return Object.entries(PRICES.zarubne)
+    .filter(([k]) => frameFamilyOf(k) === family)
+    .map(([k, v]) => ({ key: k, price: v }));
+}
+
+
+// ====== DOOR CARD ======
+function defaultDoorState(skipSeq) {
+  if (!skipSeq) doorSeq++;
+  return {
+    id: skipSeq ? 0 : doorSeq,
+    room: "",
+    width: 80,
+    height: 197,
+    wall: 12,
+    qty: 1,
+    din: "L",
+    wing: 1, // 1 or 2 (dvojkrídlové)
+    fill: "vostina",
+    doorFamily: "",
+    doorType: "",
+    frameFamily: "",
+    frame: "",
+    handle: "",
+    handlePrice: 0,
+    works: {},
+    extras: {},
+    note: "",
+    survey: { sirka: "", vyska: "", hrubka: "", stav: "", poznamka: "" },
+    collapsed: false,
+  };
+}
+
+function addDoor() {
+  // collapse all existing doors so the new one is the focus
+  doors.forEach(d => d.collapsed = true);
+  const nd = defaultDoorState();
+  doors.push(nd);
+  renderDoors();
+  saveStateDebounced();
+  setTimeout(() => {
+    const cards = document.querySelectorAll("#doorsList [data-door]");
+    if (cards.length) {
+      const last = cards[cards.length - 1];
+      last.scrollIntoView({ behavior: "smooth", block: "center" });
+      const room = last.querySelector("[data-room]");
+      if (room) room.focus();
+    }
+  }, 80);
+}
+
+function duplicateDoor(id) {
+  const idx = doors.findIndex(d => d.id === id);
+  if (idx < 0) return;
+  const src = doors[idx];
+  doorSeq++;
+  const copy = JSON.parse(JSON.stringify(src));
+  copy.id = doorSeq;
+  copy.collapsed = false;
+  copy.room = src.room ? src.room + " (kópia)" : "";
+  // collapse the original
+  doors[idx].collapsed = true;
+  doors.splice(idx + 1, 0, copy);
+  renderDoors();
+  saveStateDebounced();
+  showToast("Dvere duplikované");
+}
+
+function removeDoor(id) {
+  doors = doors.filter(d => d.id !== id);
+  renderDoors();
+  saveStateDebounced();
+}
+
+function collapseAll() {
+  if (doors.length === 0) return;
+  const anyOpen = doors.some(d => !d.collapsed);
+  doors.forEach(d => d.collapsed = anyOpen);
+  renderDoors();
+}
+
+function renderDoors() {
+  const list = document.getElementById("doorsList");
+  list.innerHTML = "";
+
+  if (doors.length === 0) {
+    list.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;">
+      <div style="font-size:30px;margin-bottom:6px;">🚪</div>
+      <div style="font-weight:600;color:var(--ink);margin-bottom:4px;">Zatiaľ žiadne dvere</div>
+      <div style="font-size:13px;">Kliknite na <b>+ Pridať</b> pre prvé dvere v ponuke.</div>
+    </div>`;
+    updateSummary();
+    document.getElementById("fabBtn").style.display = "none";
+    return;
+  }
+  document.getElementById("fabBtn").style.display = "flex";
+
+  const tpl = document.getElementById("doorTemplate");
+  doors.forEach((d, i) => {
+    const node = tpl.content.firstElementChild.cloneNode(true);
+    node.dataset.id = d.id;
+    renderDoorCard(node, d, i);
+    list.appendChild(node);
+  });
+  updateSummary();
+}
+
+function renderDoorCard(node, d, i) {
+  const collapsedRow = node.querySelector("[data-collapsed-row]");
+  const expandedBody = node.querySelector("[data-expanded-body]");
+
+  const setCollapsed = (val) => {
+    d.collapsed = val;
+    collapsedRow.style.display = val ? "flex" : "none";
+    expandedBody.style.display = val ? "none" : "block";
+  };
+  setCollapsed(!!d.collapsed);
+
+  // index badges
+  node.querySelectorAll("[data-door-idx], [data-door-idx-2]").forEach(el => el.textContent = i + 1);
+
+  // ===== collapsed row =====
+  collapsedRow.onclick = (e) => {
+    if (e.target.closest("button")) return;
+    setCollapsed(false);
+    saveStateDebounced();
+  };
+
+  const updateCollapsed = () => {
+    const c = computeDoor(d);
+    node.querySelector("[data-collapsed-name]").textContent = d.room || "(bez názvu)";
+    const parts = [];
+    if (d.doorType) parts.push(`${d.doorFamily} · ${variantOfDoor(d.doorType)}`);
+    else parts.push("Bez výberu dverí");
+    parts.push(`${d.width}×${d.height} cm`);
+    if (d.wing === 2) parts.push("2-krídl.");
+    node.querySelector("[data-collapsed-meta]").textContent = parts.join(" · ");
+    node.querySelector("[data-collapsed-price]").textContent = fmt(c.total);
+    node.querySelector("[data-collapsed-qty]").textContent = `${d.qty} ${d.qty === 1 ? "ks" : "ks"}`;
+  };
+
+  // ===== Room name =====
+  const roomEl = node.querySelector("[data-room]");
+  roomEl.value = d.room;
+  roomEl.addEventListener("input", e => { d.room = e.target.value; updateCollapsed(); updateSummary(); saveStateDebounced(); });
+
+  // ===== Width chips =====
+  const wchips = node.querySelectorAll("[data-width-chips] .chip");
+  const updateWidthChips = () => {
+    const p = d.doorType ? PRICES.dvere[d.doorType] : null;
+    wchips.forEach(c => {
+      const w = parseInt(c.dataset.w, 10);
+      const unavailable = p && w >= 100 && p.s100_110 === null;
+      c.classList.toggle("active", w === d.width);
+      c.disabled = unavailable;
+      c.title = unavailable ? "Tento rozmer nie je dostupný pre zvolenú sériu" : "";
+      c.style.opacity = unavailable ? "0.35" : "";
+      c.style.cursor = unavailable ? "not-allowed" : "";
+      c.onclick = unavailable ? () => {
+        showToast("⚠️ Tento rozmer nie je pre vybranú sériu štandardný — bude účtovaný príplatok za atyp.");
+      } : () => {
+        d.width = w;
+        wchips.forEach(x => x.classList.toggle("active", parseInt(x.dataset.w, 10) === w));
+        updateRoomTotal(node, d); updateCollapsed(); updateSummary(); saveStateDebounced();
+      };
+    });
+  };
+  updateWidthChips();
+
+  // ===== Height seg =====
+  node.querySelectorAll("[data-h]").forEach(b => {
+    const h = parseInt(b.dataset.h, 10);
+    b.classList.toggle("active", h === d.height);
+    b.onclick = () => {
+      d.height = h;
+      node.querySelectorAll("[data-h]").forEach(x => x.classList.toggle("active", parseInt(x.dataset.h, 10) === h));
+      updateRoomTotal(node, d); updateCollapsed(); updateSummary(); saveStateDebounced();
+    };
+  });
+
+  // ===== Qty stepper =====
+  const qtyInput = node.querySelector("[data-qty]");
+  qtyInput.value = d.qty;
+  const setQty = (n, finalize) => {
+    let v = parseInt(n, 10);
+    if (isNaN(v)) v = finalize ? 1 : 0;
+    if (finalize) v = Math.max(1, v);
+    d.qty = v;
+    if (finalize) qtyInput.value = v;
+    updateRoomTotal(node, d); updateCollapsed(); updateSummary(); saveStateDebounced();
+  };
+  qtyInput.addEventListener("input", e => setQty(e.target.value, false));
+  qtyInput.addEventListener("blur", e => setQty(e.target.value, true));
+  node.querySelector("[data-qty-dec]").onclick = () => setQty(Math.max(1, (d.qty || 1) - 1), true);
+  node.querySelector("[data-qty-inc]").onclick = () => setQty((d.qty || 1) + 1, true);
+
+  // ===== DIN seg =====
+  node.querySelectorAll("[data-din]").forEach(b => {
+    b.classList.toggle("active", b.dataset.din === d.din);
+    b.onclick = () => {
+      d.din = b.dataset.din;
+      node.querySelectorAll("[data-din]").forEach(x => x.classList.toggle("active", x.dataset.din === d.din));
+      saveStateDebounced();
+    };
+  });
+
+  // ===== Wing seg =====
+  node.querySelectorAll("[data-wing]").forEach(b => {
+    const w = parseInt(b.dataset.wing, 10);
+    b.classList.toggle("active", w === d.wing);
+    b.onclick = () => {
+      d.wing = w;
+      node.querySelectorAll("[data-wing]").forEach(x => x.classList.toggle("active", parseInt(x.dataset.wing, 10) === w));
+      updateRoomTotal(node, d); updateCollapsed(); updateSummary(); saveStateDebounced();
+    };
+  });
+
+  // ===== Wall stepper =====
+  const wallInput = node.querySelector("[data-wall]");
+  wallInput.value = d.wall;
+  const setWall = (n, finalize) => {
+    let v = parseFloat(n);
+    if (isNaN(v)) v = finalize ? 12 : 0;
+    if (finalize) v = Math.max(6, Math.min(60, v));
+    d.wall = v;
+    if (finalize) wallInput.value = v;
+    updateRoomTotal(node, d); updateCollapsed(); updateSummary(); saveStateDebounced();
+  };
+  wallInput.addEventListener("input", e => setWall(e.target.value, false));
+  wallInput.addEventListener("blur", e => setWall(e.target.value, true));
+  node.querySelector("[data-wall-dec]").onclick = () => setWall(Math.max(6, (d.wall || 12) - 1), true);
+  node.querySelector("[data-wall-inc]").onclick = () => setWall((d.wall || 12) + 1, true);
+
+  // ===== Fill seg =====
+  node.querySelectorAll("[data-fill]").forEach(b => {
+    b.classList.toggle("active", b.dataset.fill === d.fill);
+    b.onclick = () => {
+      d.fill = b.dataset.fill;
+      node.querySelectorAll("[data-fill]").forEach(x => x.classList.toggle("active", x.dataset.fill === d.fill));
+      updateRoomTotal(node, d); updateSummary(); saveStateDebounced();
+    };
+  });
+
+  // ===== Door family + variant cascade =====
+  const famSel = node.querySelector("[data-doorfamily]");
+  const typeSel = node.querySelector("[data-doortype]");
+  const priceHint = node.querySelector("[data-doorprice]");
+
+  // populate families
+  famSel.innerHTML = `<option value="">— Séria —</option>` +
+    listDoorFamilies().map(f => `<option value="${f}">${f}</option>`).join("");
+  if (d.doorType && !d.doorFamily) d.doorFamily = familyOfDoor(d.doorType);
+  famSel.value = d.doorFamily || "";
+
+  const repopulateVariants = () => {
+    const fam = d.doorFamily;
+    if (!fam) {
+      typeSel.innerHTML = `<option value="">— najprv vyberte sériu —</option>`;
+      typeSel.disabled = true;
+    } else {
+      const variants = listDoorVariants(fam);
+      typeSel.innerHTML = `<option value="">— Variant —</option>` +
+        variants.map(v => `<option value="${v.key}">${v.variant || "(základ)"} — od ${v.prices.s60_90} €</option>`).join("");
+      typeSel.disabled = false;
+      if (d.doorType && familyOfDoor(d.doorType) === fam) typeSel.value = d.doorType;
+    }
+  };
+  repopulateVariants();
+  // price hint
+  const updatePriceHint = () => {
+    if (d.doorType) {
+      priceHint.textContent = `Základná cena: ${fmt(doorBasePrice(d.doorType, d.width, d.wing))} / ks`;
+    } else priceHint.textContent = "";
+  };
+  updatePriceHint();
+
+  famSel.onchange = e => {
+    const newFamily = e.target.value;
+    // Reset variant len ak sa séria skutočne zmenila
+    if (familyOfDoor(d.doorType) !== newFamily) {
+      d.doorType = "";
+    }
+    d.doorFamily = newFamily;
+    // Auto-navrhnúť typ zárubne ak ešte nie je vybraná
+    if (!d.frame) {
+      const suggested = suggestedFrameKey(newFamily);
+      if (suggested) {
+        d.frameFamily = "oblozkova";
+        d.frame = suggested;
+        ffamSel.value = "oblozkova";
+        repopulateFrames();
+        frSel.value = suggested;
+      }
+    }
+    repopulateVariants();
+    updatePriceHint();
+    updateWidthChips();
+    updateRoomTotal(node, d); updateCollapsed(); updateSummary(); saveStateDebounced();
+  };
+  typeSel.onchange = e => {
+    d.doorType = e.target.value;
+    updatePriceHint();
+    updateWidthChips();
+    updateRoomTotal(node, d); updateCollapsed(); updateSummary(); saveStateDebounced();
+  };
+
+  // ===== Frame family + variant cascade =====
+  const ffamSel = node.querySelector("[data-framefamily]");
+  const frSel = node.querySelector("[data-frame]");
+  const framePriceHint = node.querySelector("[data-frameprice]");
+  if (d.frame && !d.frameFamily) d.frameFamily = frameFamilyOf(d.frame);
+  ffamSel.value = d.frameFamily || "";
+
+  const repopulateFrames = () => {
+    if (!d.frameFamily) {
+      frSel.innerHTML = `<option value="">— bez zárubne —</option>`;
+      frSel.disabled = false;
+    } else {
+      const frames = listFrames(d.frameFamily);
+      frSel.innerHTML = `<option value="">— vyberte typ —</option>` +
+        frames.map(f => `<option value="${f.key}">${f.key.replace(/^(Obložková|Oceľová) /, "")} — ${f.price} €</option>`).join("");
+      if (d.frame && frameFamilyOf(d.frame) === d.frameFamily) frSel.value = d.frame;
+    }
+  };
+  repopulateFrames();
+  const updateFrameHint = () => {
+    if (d.frame) {
+      let txt = `Cena: ${fmt(PRICES.zarubne[d.frame] || 0)}`;
+      if (d.wing === 2) txt += ` · 2-krídlové +${PRICES.priplatky.dvojkridlove_zarubna_percent}%`;
+      framePriceHint.textContent = txt;
+    } else framePriceHint.textContent = "";
+  };
+  updateFrameHint();
+
+  ffamSel.onchange = e => {
+    d.frameFamily = e.target.value;
+    d.frame = "";
+    repopulateFrames(); updateFrameHint();
+    updateRoomTotal(node, d); updateCollapsed(); updateSummary(); saveStateDebounced();
+  };
+  frSel.onchange = e => {
+    d.frame = e.target.value;
+    updateFrameHint();
+    updateRoomTotal(node, d); updateCollapsed(); updateSummary(); saveStateDebounced();
+  };
+
+  // ===== Handle =====
+  const handleEl = node.querySelector("[data-handle]");
+  const handlePriceEl = node.querySelector("[data-handleprice]");
+  handleEl.value = d.handle;
+  handlePriceEl.value = d.handlePrice || "";
+  handleEl.addEventListener("input", e => { d.handle = e.target.value; saveStateDebounced(); });
+  handlePriceEl.addEventListener("input", e => { d.handlePrice = parseFloat(e.target.value) || 0; updateRoomTotal(node, d); updateCollapsed(); updateSummary(); saveStateDebounced(); });
+
+  // ===== Works =====
+  const w = node.querySelector("[data-works]");
+  Object.entries(PRICES.prace).forEach(([name, price]) => {
+    const id = `w_${d.id}_${name.replace(/\W+/g, "_")}`;
+    const lab = document.createElement("label");
+    lab.className = "chk";
+    lab.innerHTML = `<input type="checkbox" id="${id}" ${d.works[name] ? "checked" : ""}/><span class="chk-label">${name}</span><span class="chk-price">${fmt(price)}</span>`;
+    lab.querySelector("input").addEventListener("change", e => {
+      if (e.target.checked) d.works[name] = true; else delete d.works[name];
+      updateRoomTotal(node, d); updateCollapsed(); updateSummary(); saveStateDebounced();
+    });
+    w.appendChild(lab);
+  });
+
+  // ===== Extras =====
+  const ex = node.querySelector("[data-extras]");
+  const extrasCount = node.querySelector("[data-extras-count]");
+  const updateExtrasCount = () => {
+    const n = Object.keys(d.extras).length;
+    extrasCount.textContent = n ? `${n} aktívnych` : "";
+  };
+  EXTRA_FLAGS.forEach(({key, label}) => {
+    const price = PRICES.priplatky[key] || 0;
+    const id = `x_${d.id}_${key}`;
+    const lab = document.createElement("label");
+    lab.className = "chk";
+    lab.innerHTML = `<input type="checkbox" id="${id}" ${d.extras[key] ? "checked" : ""}/><span class="chk-label">${label}</span><span class="chk-price">+${fmt(price)}</span>`;
+    lab.querySelector("input").addEventListener("change", e => {
+      if (e.target.checked) d.extras[key] = true; else delete d.extras[key];
+      updateRoomTotal(node, d); updateCollapsed(); updateSummary(); updateExtrasCount(); saveStateDebounced();
+    });
+    ex.appendChild(lab);
+  });
+  updateExtrasCount();
+
+  // ===== Note =====
+  const noteEl = node.querySelector("[data-note]");
+  noteEl.value = d.note;
+  noteEl.addEventListener("input", e => { d.note = e.target.value; saveStateDebounced(); });
+  // ===== Survey (Zameranie) =====
+  const surveyDetails = node.querySelector("[data-survey-details]");
+  const surveyBadge = node.querySelector("[data-survey-badge]");
+  const updateSurveyBadge = () => {
+    const s = d.survey;
+    const filled = [s.sirka, s.vyska, s.hrubka].filter(Boolean).length;
+    surveyBadge.textContent = filled > 0 ? `${filled}/3 rozmerov` : "";
+  };
+  const sFields = [
+    ["[data-survey-sirka]", "sirka"],
+    ["[data-survey-vyska]", "vyska"],
+    ["[data-survey-hrubka]", "hrubka"],
+    ["[data-survey-poznamka]", "poznamka"],
+  ];
+  sFields.forEach(([sel, key]) => {
+    const el = node.querySelector(sel);
+    el.value = d.survey[key] || "";
+    el.addEventListener("input", e => { d.survey[key] = e.target.value; updateSurveyBadge(); saveStateDebounced(); });
+  });
+  const stavEl = node.querySelector("[data-survey-stav]");
+  stavEl.value = d.survey.stav || "";
+  stavEl.addEventListener("change", e => { d.survey.stav = e.target.value; saveStateDebounced(); });
+  updateSurveyBadge();
+
+  // ===== Action buttons =====
+  node.querySelector("[data-collapse]").onclick = () => { setCollapsed(true); updateCollapsed(); saveStateDebounced(); };
+  node.querySelector("[data-duplicate]").onclick = () => duplicateDoor(d.id);
+  node.querySelector("[data-remove]").onclick = () => {
+    if (confirm(`Zmazať dvere "${d.room || "bez názvu"}" z ponuky?`)) removeDoor(d.id);
+  };
+
+  updateRoomTotal(node, d);
+  updateCollapsed();
+}
+
+// ====== CALC ======
+function computeDoor(d) {
+  // Door base — picks correct price tier based on width + wing
+  let doorUnit = doorBasePrice(d.doorType, d.width, d.wing);
+
+  // Height 210 → +15%
+  if (d.height >= 210) doorUnit *= (1 + PRICES.priplatky.vyska210_percent / 100);
+
+  // Frame
+  let frameUnit = d.frame ? (PRICES.zarubne[d.frame] || 0) : 0;
+
+  // Wall thickness surcharge on obložková: 6-16 = základ, 17-30 = +8 paušál, nad 30 = +3/cm
+  let wallAdd = 0;
+  if (d.frame && d.frame.startsWith("Obložková") && d.wall > 16) {
+    if (d.wall <= 30) {
+      wallAdd = PRICES.priplatky.stena_17_30_pausal;
+    } else {
+      wallAdd = PRICES.priplatky.stena_17_30_pausal + (Math.ceil(d.wall - 30)) * PRICES.priplatky.stena_nad_30_za_cm;
+    }
+  }
+  frameUnit += wallAdd;
+
+  // Frame height 210 — only auto-add if montér hasn't manually checked it in extras
+  if (d.frame && d.height >= 210 && !d.extras["zarubna_vyska_210_pripl"]) {
+    frameUnit += PRICES.priplatky.zarubna_vyska_210_pripl;
+  }
+  // 2-krídlové zárubňa = +30% (len pre obložkové, nie oceľové)
+  let dvojAdd = 0;
+  if (d.frame && d.wing === 2 && d.frame.startsWith("Obložková")) {
+    dvojAdd = frameUnit * (PRICES.priplatky.dvojkridlove_zarubna_percent / 100);
+    frameUnit += dvojAdd;
+  }
+
+  // Extras
+  let extrasUnit = 0;
+  Object.keys(d.extras).forEach(k => { extrasUnit += (PRICES.priplatky[k] || 0); });
+
+  const handleUnit = d.handlePrice || 0;
+  const materialUnit = doorUnit + frameUnit + extrasUnit + handleUnit;
+
+  let workUnit = 0;
+  Object.keys(d.works).forEach(name => { workUnit += (PRICES.prace[name] || 0); });
+
+  const qty = Math.max(1, d.qty);
+  const material = materialUnit * qty;
+  const work = workUnit * qty;
+  const total = material + work;
+
+  return {
+    doorUnit, frameUnit, wallAdd, dvojAdd, extrasUnit, handleUnit,
+    materialUnit, workUnit, qty, material, work, total
+  };
+}
+
+function updateRoomTotal(node, d) {
+  const c = computeDoor(d);
+  node.querySelector("[data-roomtotal]").textContent = fmt(c.total);
+}
+
+function updateSummary() {
+  let qtySum = 0, materialSum = 0, workSum = 0;
+  doors.forEach(d => {
+    const c = computeDoor(d);
+    qtySum += c.qty;
+    materialSum += c.material;
+    workSum += c.work;
+  });
+  const net = materialSum + workSum;
+  const isB2B = document.getElementById("custB2B")?.checked || false;
+  const vatRate = isB2B ? 0 : 0.20;
+  const vat = net * vatRate;
+  const gross = net + vat;
+
+  const vatLabel = document.getElementById("sumVatLabel");
+  if (vatLabel) vatLabel.textContent = isB2B ? "DPH (prenesená, 0%)" : "DPH 20%";
+  const grossLabel = document.getElementById("sumGrossLabel");
+  if (grossLabel) grossLabel.textContent = isB2B ? "Celkom bez DPH" : "Celkom s DPH";
+
+  document.getElementById("sumDoors").textContent = qtySum;
+  document.getElementById("sumLines").textContent = doors.length;
+  document.getElementById("sumMaterial").textContent = fmt(materialSum);
+  document.getElementById("sumWork").textContent = fmt(workSum);
+  document.getElementById("sumNet").textContent = fmt(net);
+  document.getElementById("sumVat").textContent = fmt(vat);
+  document.getElementById("sumGross").textContent = fmt(gross);
+  document.getElementById("stickyGross").textContent = fmt(gross);
+  document.getElementById("doorCountBadge").textContent = `${doors.length} ${doors.length === 1 ? "dvere" : (doors.length >= 2 && doors.length <= 4 ? "dvere" : "dverí")}`;
+
+  // lines preview
+  const body = document.getElementById("linesBody");
+  if (doors.length === 0) {
+    body.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px;">Žiadne položky. Pridajte dvere v sekcii 2.</td></tr>`;
+    return;
+  }
+  body.innerHTML = "";
+  doors.forEach((d, i) => {
+    const c = computeDoor(d);
+    const lines = describeDoorLines(d);
+    body.innerHTML += `<tr>
+      <td><b>${i + 1}</b></td>
+      <td>
+        <div style="font-weight:600;">${d.room || "(bez názvu)"} · ${d.width}×${d.height} cm</div>
+        <div style="color:var(--muted);font-size:12px;margin-top:2px;">${lines.replace(/\n/g, "<br>")}</div>
+      </td>
+      <td class="num">${c.qty}</td>
+      <td class="num">${fmt(c.total / c.qty)}</td>
+      <td class="num"><b>${fmt(c.total)}</b></td>
+    </tr>`;
+  });
+}
+
+function describeDoorLines(d) {
+  const lines = [];
+  const typeStr = d.doorType || "(typ neuvedený)";
+  const variantParts = [];
+  if (d.height >= 210) variantParts.push("výška 210 cm, +15 %");
+  if (d.wing === 2) variantParts.push("2-krídlové");
+  lines.push(`Dvere: ${typeStr}${variantParts.length ? "  (" + variantParts.join(", ") + ")" : ""}`);
+  if (d.frame) {
+    const fparts = [];
+    if (d.wall > 16 && d.frame.startsWith("Obložková")) {
+      if (d.wall <= 30) fparts.push(`stena ${d.wall} cm, +8 € paušál`);
+      else fparts.push(`stena ${d.wall} cm, +8 € paušál + ${Math.ceil(d.wall-30)} cm × 3 €`);
+    }
+    if (d.wing === 2) fparts.push("+30 % za 2-krídlové");
+    lines.push(`Zárubňa: ${d.frame}${fparts.length ? "  (" + fparts.join(", ") + ")" : ""}`);
+  }
+  if (d.handle) lines.push(`Kovanie: ${d.handle}${d.handlePrice ? `  (${fmt(d.handlePrice)} / ks)` : ""}`);
+  lines.push(`Otváranie: ${d.din === "L" ? "ľavé" : "pravé"}`);
+  const works = Object.keys(d.works);
+  if (works.length) lines.push(`Práce: ${works.join(", ")}`);
+  const extras = Object.keys(d.extras);
+  if (extras.length) {
+    const labels = extras.map(k => (EXTRA_FLAGS.find(e => e.key === k) || {}).label || k);
+    lines.push(`Príplatky: ${labels.join(", ")}`);
+  }
+  if (d.note) lines.push(`Poznámka: ${d.note}`);
+  return lines.join("\n");
+}
+
+
+// ====== PDF ======
+let _fontCache = null;
+async function loadRobotoFonts() {
+  if (_fontCache) return _fontCache;
+  async function fetchB64(url) {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error("Font fetch failed: " + r.status);
+    const buf = await r.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let bin = "";
+    const CHUNK = 0x8000;
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+    }
+    return btoa(bin);
+  }
+  const base = "https://cdn.jsdelivr.net/gh/googlefonts/roboto-2@main/src/hinted";
+  const [regular, bold] = await Promise.all([
+    fetchB64(base + "/Roboto-Regular.ttf"),
+    fetchB64(base + "/Roboto-Bold.ttf"),
+  ]);
+  _fontCache = { regular, bold };
+  return _fontCache;
+}
+
+function applyRoboto(doc, fonts) {
+  doc.addFileToVFS("Roboto-Regular.ttf", fonts.regular);
+  doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
+  doc.addFileToVFS("Roboto-Bold.ttf", fonts.bold);
+  doc.addFont("Roboto-Bold.ttf", "Roboto", "bold");
+  doc.setFont("Roboto", "normal");
+}
+
+async function generatePDF() {
+  if (doors.length === 0) {
+    alert("Najprv pridajte aspoň jedny dvere.");
+    return;
+  }
+  const custName = (document.getElementById("custName").value || "").trim();
+  if (!custName) {
+    if (!confirm("Meno zákazníka nie je vyplnené. Pokračovať?")) return;
+  }
+  const custAddr = document.getElementById("custAddress").value.trim();
+  const custPhone = document.getElementById("custPhone").value.trim();
+  const custEmail = document.getElementById("custEmail").value.trim();
+  const dateStr = document.getElementById("quoteDate").value || new Date().toISOString().slice(0,10);
+  const validity = document.getElementById("quoteValidity").value;
+
+  // Loading state on all PDF buttons
+  const pdfBtns = [...document.querySelectorAll("[data-pdf-btn], button[onclick*='generatePDF']")];
+  const restoreBtns = pdfBtns.map(b => {
+    const html = b.innerHTML;
+    b.disabled = true;
+    b.style.opacity = "0.6";
+    b.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" opacity="0.6"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></path></svg> Vytváram PDF…`;
+    return () => { b.disabled = false; b.style.opacity = ""; b.innerHTML = html; };
+  });
+
+  let fonts;
+  try {
+    fonts = await loadRobotoFonts();
+  } catch (e) {
+    console.warn("Roboto font load failed, falling back to helvetica:", e);
+    showToast("Font sa nepodarilo načítať – PDF bude bez diakritiky");
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 14;
+  const F = fonts ? "Roboto" : "helvetica";
+  if (fonts) applyRoboto(doc, fonts);
+
+  const quoteNo = consumeQuoteNumber();
+  refreshTopQuoteNo();
+
+  // ===== HEADER =====
+  // Logo (left)
+  try {
+    const logoW = 42;
+    const logoH = logoW / 3.72;
+    doc.addImage(LOGO_B64, "JPEG", margin, 14, logoW, logoH);
+  } catch (e) { console.warn("logo failed", e); }
+  doc.setFont(F, "normal");
+  doc.setFontSize(8.5);
+  doc.setTextColor(110, 110, 120);
+  doc.text("Montáž dverí a zárubní", margin, 28);
+  doc.text("www.dvererwa.sk", margin, 32);
+
+  // Right header — clean two-column "label : value" aligned to right edge
+  const rightX = pageW - margin;
+  doc.setTextColor(15, 15, 17);
+  doc.setFont(F, "bold");
+  doc.setFontSize(16);
+  doc.text("CENOVÁ PONUKA", rightX, 19, { align: "right" });
+
+  doc.setFontSize(9);
+  const rightLines = [
+    ["Číslo:", quoteNo],
+    ["Dátum:", formatDate(dateStr)],
+    ["Platnosť:", `${validity} dní`],
+  ];
+  let ry = 25;
+  rightLines.forEach(([label, val]) => {
+    doc.setFont(F, "normal");
+    doc.setTextColor(120, 120, 130);
+    // measure value width to position label
+    const valW = doc.getTextWidth(val);
+    doc.setFont(F, "bold");
+    const labelW = doc.getTextWidth(label);
+    doc.setFont(F, "normal");
+    doc.setTextColor(120, 120, 130);
+    doc.text(label, rightX - valW - 2, ry, { align: "right" });
+    doc.setFont(F, "bold");
+    doc.setTextColor(15, 15, 17);
+    doc.text(val, rightX, ry, { align: "right" });
+    ry += 4.5;
+  });
+
+  // Divider
+  doc.setDrawColor(229, 226, 220);
+  doc.setLineWidth(0.4);
+  doc.line(margin, 38, pageW - margin, 38);
+
+  // ===== CUSTOMER BLOCK =====
+  doc.setFont(F, "bold");
+  doc.setFontSize(7.5);
+  doc.setTextColor(120, 120, 130);
+  doc.text("ZÁKAZNÍK", margin, 44);
+
+  doc.setFont(F, "bold");
+  doc.setTextColor(15, 15, 17);
+  doc.setFontSize(13);
+  doc.text(custName || "—", margin, 50.5);
+
+  doc.setFont(F, "normal");
+  doc.setFontSize(9.5);
+  doc.setTextColor(70, 70, 85);
+  let cy = 55.5;
+  if (custAddr) { doc.text(custAddr, margin, cy); cy += 4.5; }
+  const contactBits = [];
+  if (custPhone) contactBits.push(custPhone);
+  if (custEmail) contactBits.push(custEmail);
+  if (contactBits.length) { doc.text(contactBits.join("   ·   "), margin, cy); cy += 4.5; }
+
+  // ===== TABLE =====
+  const body = doors.map((d, i) => {
+    const c = computeDoor(d);
+    const desc = describeDoorLines(d);
+    const dim = `${d.width}×${d.height} cm`;
+    return [
+      String(i + 1),
+      d.room || "—",
+      desc,
+      dim,
+      String(c.qty),
+      fmt(c.total / c.qty),
+      fmt(c.total),
+    ];
+  });
+
+  let materialSum = 0, workSum = 0;
+  doors.forEach(d => { const c = computeDoor(d); materialSum += c.material; workSum += c.work; });
+  const net = materialSum + workSum;
+  const isB2B = document.getElementById("custB2B")?.checked || false;
+  const vatRate = isB2B ? 0 : 0.20;
+  const vat = net * vatRate;
+  const gross = net + vat;
+
+  doc.autoTable({
+    startY: cy + 4,
+    head: [["Č.", "Miestnosť", "Popis", "Rozmery", "Ks", "Cena / ks", "Spolu"]],
+    body,
+    styles: {
+      font: F, fontSize: 8.5, cellPadding: 2.8, valign: "top",
+      textColor: [15,15,17], lineColor: [229,226,220], lineWidth: 0.1,
+      overflow: "linebreak",
+    },
+    headStyles: {
+      font: F, fillColor: [15,15,17], textColor: 255, fontStyle: "bold", fontSize: 8.5,
+      cellPadding: 3, halign: "left",
+    },
+    alternateRowStyles: { fillColor: [249, 249, 251] },
+    columnStyles: {
+      0: { cellWidth: 8, halign: "center" },
+      1: { cellWidth: 24, fontStyle: "bold" },
+      2: { cellWidth: "auto" },
+      3: { cellWidth: 20, halign: "center" },
+      4: { cellWidth: 10, halign: "center" },
+      5: { cellWidth: 22, halign: "right" },
+      6: { cellWidth: 26, halign: "right", fontStyle: "bold" },
+    },
+    margin: { left: margin, right: margin },
+  });
+
+  let y = doc.lastAutoTable.finalY + 5;
+
+  // ===== TOTALS BOX (right column) =====
+  const boxW = 88;
+  const boxX = pageW - margin - boxW;
+
+  function totalsRow(label, value, opts = {}) {
+    const { bold = false, big = false } = opts;
+    if (big) {
+      doc.setFillColor(15, 15, 17);
+      doc.rect(boxX, y, boxW, 12, "F");
+      doc.setFont(F, "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(220, 220, 230);
+      doc.text(label, boxX + 4, y + 7.8);
+      doc.setFont(F, "bold");
+      doc.setFontSize(14);
+      doc.setTextColor(227, 6, 19);
+      doc.text(value, boxX + boxW - 4, y + 8, { align: "right" });
+      y += 12;
+    } else {
+      doc.setFont(F, bold ? "bold" : "normal");
+      doc.setFontSize(9.5);
+      doc.setTextColor(bold ? 15 : 70, bold ? 15 : 70, bold ? 17 : 85);
+      doc.text(label, boxX + 4, y + 5.4);
+      doc.setFont(F, bold ? "bold" : "normal");
+      doc.setTextColor(15, 15, 17);
+      doc.text(value, boxX + boxW - 4, y + 5.4, { align: "right" });
+      doc.setDrawColor(229, 226, 220);
+      doc.setLineWidth(0.2);
+      doc.line(boxX, y + 7.4, boxX + boxW, y + 7.4);
+      y += 7.4;
+    }
+  }
+  totalsRow("Materiál bez DPH", fmt(materialSum));
+  totalsRow("Práce bez DPH", fmt(workSum));
+  totalsRow("Spolu bez DPH", fmt(net), { bold: true });
+  totalsRow(isB2B ? "DPH (prenesená, 0 %)" : "DPH 20 %", fmt(vat));
+  totalsRow(isB2B ? "CELKOM bez DPH" : "CELKOM s DPH", fmt(gross), { big: true });
+
+  // B2B formulka
+  if (isB2B) {
+    const b2bY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 5 : cy + 10;
+    doc.setFont(F, "italic"); doc.setFontSize(7.5); doc.setTextColor(110,110,120);
+    const b2bText = "Prenesená daňová povinnosť — uplatňuje sa § 69 ods. 12 zákona č. 222/2004 Z.z. o DPH. Daň je povinný odviesť príjemca plnenia.";
+    const b2bLines = doc.splitTextToSize(b2bText, pageW - margin * 2);
+    doc.text(b2bLines, margin, b2bY);
+  }
+
+  // ===== FOOTER NOTES =====
+  const footerLineY = pageH - 16;
+  const notesY = Math.min(y + 8, footerLineY - 18);
+
+  doc.setFont(F, "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(15, 15, 17);
+  doc.text(`Platnosť ponuky: ${validity} dní od ${formatDate(dateStr)}`, margin, notesY);
+
+  doc.setFont(F, "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(110, 110, 125);
+  doc.text("Materiál: Doornite (cenník 2026/1), platný od 19. 1. 2026", margin, notesY + 5);
+  doc.text("Ceny prác sú orientačné a môžu byť upresnené po fyzickej obhliadke.", margin, notesY + 9);
+
+  // ===== PAGE FOOTER =====
+  doc.setDrawColor(229, 226, 220);
+  doc.setLineWidth(0.3);
+  doc.line(margin, footerLineY, pageW - margin, footerLineY);
+
+  doc.setFont(F, "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(140, 140, 150);
+  doc.text("RWAdoor · Montáž dverí a zárubní · www.dvererwa.sk", margin, footerLineY + 4);
+  const pageCount = doc.internal.getNumberOfPages();
+  doc.text(`Strana 1 z ${pageCount}`, pageW - margin, footerLineY + 4, { align: "right" });
+
+  // ===== SAVE =====
+  const fnameDate = dateStr.replace(/-/g, "");
+  const safeName = (custName || "ponuka")
+    .replace(/[^a-zA-Z0-9_\- áäčďéěíľĺňóôöŕřšťúůüýžÁÄČĎÉĚÍĽĹŇÓÔÖŔŘŠŤÚŮÜÝŽ]/g, "")
+    .replace(/\s+/g, "_");
+  doc.save(`Ponuka_${safeName}_${fnameDate}.pdf`);
+
+  restoreBtns.forEach(fn => fn());
+  showToast("PDF vygenerované");
+}
+
+async function generateOrderPDF() {
+  if (doors.length === 0) { alert("Najprv pridajte aspoň jedny dvere."); return; }
+
+  const custName = (document.getElementById("custName").value || "").trim();
+  const custAddr = document.getElementById("custAddress").value.trim();
+  const custPhone = document.getElementById("custPhone").value.trim();
+  const custEmail = document.getElementById("custEmail").value.trim();
+  const surveyDateVal = document.getElementById("surveyDate")?.value || "";
+  const quoteDateVal = document.getElementById("quoteDate").value || new Date().toISOString().slice(0,10);
+
+  let fonts;
+  try { fonts = await loadRobotoFonts(); } catch(e) {}
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 14;
+  const F = fonts ? "Roboto" : "helvetica";
+  if (fonts) applyRoboto(doc, fonts);
+
+  const quoteNo = (() => {
+    const { year, key, current } = getQuoteNumber();
+    return formatQuoteNumber(year, current + 1); // read-only, nespotrebuj číslo
+  })();
+  const stavLabels = { nova: "Nová stavba", rekonstrukcia: "Rekonštrukcia", kovova: "Existujúca kovová zárubňa" };
+
+  // ===== HEADER =====
+  try {
+    const logoW = 38; const logoH = logoW / 3.72;
+    doc.addImage(LOGO_B64, "JPEG", margin, 14, logoW, logoH);
+  } catch(e) {}
+
+  doc.setFont(F, "bold"); doc.setFontSize(16); doc.setTextColor(15,15,17);
+  doc.text("OBJEDNÁVKOVÝ LIST", pageW - margin, 19, { align: "right" });
+  doc.setFont(F, "normal"); doc.setFontSize(9); doc.setTextColor(110,110,120);
+  doc.text(`Ponuka č.: ${quoteNo}`, pageW - margin, 25, { align: "right" });
+  doc.text(`Dátum zamerania: ${surveyDateVal ? formatDate(surveyDateVal) : "—"}`, pageW - margin, 30, { align: "right" });
+  doc.text(`Vytvorené: ${formatDate(quoteDateVal)}`, pageW - margin, 35, { align: "right" });
+
+  doc.setDrawColor(229,226,220); doc.setLineWidth(0.4);
+  doc.line(margin, 40, pageW - margin, 40);
+
+  // ===== CUSTOMER =====
+  let y = 46;
+  doc.setFont(F, "bold"); doc.setFontSize(7.5); doc.setTextColor(120,120,130);
+  doc.text("ZÁKAZNÍK / ADRESA MONTÁŽE", margin, y); y += 5;
+  doc.setFont(F, "bold"); doc.setFontSize(12); doc.setTextColor(15,15,17);
+  doc.text(custName || "—", margin, y); y += 5;
+  doc.setFont(F, "normal"); doc.setFontSize(9); doc.setTextColor(70,70,85);
+  if (custAddr) { doc.text(custAddr, margin, y); y += 4.5; }
+  const contact = [custPhone, custEmail].filter(Boolean).join("  |  ");
+  if (contact) { doc.text(contact, margin, y); y += 4.5; }
+  y += 3;
+
+  // ===== DOORS =====
+  doors.forEach((d, idx) => {
+    // Check if new page needed
+    if (y > pageH - 60) {
+      doc.addPage();
+      y = 18;
+    }
+
+    // Door header bar
+    doc.setFillColor(245, 244, 242);
+    doc.roundedRect(margin, y, pageW - margin*2, 8, 1.5, 1.5, "F");
+    doc.setFont(F, "bold"); doc.setFontSize(9.5); doc.setTextColor(15,15,17);
+    doc.text(`#${idx+1}  ${d.room || "(bez názvu)"}`, margin + 3, y + 5.5);
+    // Door type right-aligned
+    if (d.doorType) {
+      doc.setFont(F, "normal"); doc.setFontSize(8.5); doc.setTextColor(90,90,100);
+      const shortType = variantOfDoor(d.doorType) || d.doorType;
+      const maxTypeW = (pageW / 2) - margin;
+      const typeStr = doc.splitTextToSize(shortType, maxTypeW)[0]; // len prvý riadok
+      doc.text(typeStr, pageW - margin - 3, y + 5.5, { align: "right" });
+    }
+    y += 11;
+
+    // Two column layout: left = technical, right = survey
+    const colL = margin + 3;
+    const colR = pageW / 2 + 5;
+    const startY = y;
+
+    // LEFT: Technical parameters — len ak sú dvere vybrané
+    const hasDoor = !!d.doorType;
+    doc.setFont(F, "bold"); doc.setFontSize(7.5); doc.setTextColor(120,120,130);
+    doc.text("TECHNICKÉ PARAMETRE", colL, y); y += 5;
+
+    if (hasDoor) {
+      const techLines = [
+        ["Šírka × Výška:", `${d.width} × ${d.height} cm${d.wing === 2 ? " (2-krídlové)" : ""}`],
+        ["Hrúbka steny:", `${d.wall} cm`],
+        ["Smer otvárania:", d.din === "L" ? "Ľavé" : "Pravé"],
+        ["Zárubňa:", d.frame || "—"],
+        ["Kovanie:", d.handle || "—"],
+        ["Počet kusov:", `${d.qty} ks`],
+      ];
+      if (d.note) techLines.push(["Poznámka:", d.note]);
+
+      doc.setFontSize(8.5);
+      techLines.forEach(([label, val]) => {
+        doc.setFont(F, "normal"); doc.setTextColor(110,110,120);
+        doc.text(label, colL, y);
+        doc.setFont(F, "bold"); doc.setTextColor(15,15,17);
+        doc.text(val, colL + 32, y);
+        y += 4.5;
+      });
+    } else {
+      doc.setFont(F, "normal"); doc.setFontSize(8.5); doc.setTextColor(150,150,160);
+      doc.text("(dvere nevybrané — len zameranie)", colL, y);
+      y += 6;
+    }
+
+    // RIGHT: Survey measurements
+    let ry = startY;
+    doc.setFont(F, "bold"); doc.setFontSize(7.5); doc.setTextColor(120,120,130);
+    doc.text("ZAMERANIE STAVEBNÉHO OTVORU", colR, ry); ry += 5;
+
+    const s = d.survey;
+    const hasSurvey = s.sirka || s.vyska || s.hrubka;
+
+    if (hasSurvey) {
+
+
+      // Survey text data
+      const surveyLines = [
+        ["Nameraná šírka:", s.sirka ? `${s.sirka} mm` : "—"],
+        ["Nameraná výška:", s.vyska ? `${s.vyska} mm` : "—"],
+        ["Hrúbka steny:", s.hrubka ? `${s.hrubka} mm` : "—"],
+        ["Stav otvoru:", stavLabels[s.stav] || "—"],
+      ];
+      if (s.poznamka) surveyLines.push(["Poznámka:", s.poznamka]);
+
+      doc.setFontSize(8.5);
+      surveyLines.forEach(([label, val]) => {
+        doc.setFont(F, "normal"); doc.setTextColor(110,110,120);
+        doc.text(label, colR, ry);
+        doc.setFont(F, "bold"); doc.setTextColor(15,15,17);
+        // wrap long values
+        const wrapped = doc.splitTextToSize(val, pageW - colR - margin - 2);
+        doc.text(wrapped, colR + 28, ry);
+        ry += 4.5 * wrapped.length;
+      });
+    } else {
+      doc.setFont(F, "normal"); doc.setFontSize(8.5); doc.setTextColor(150,150,160);
+      doc.text("(zameranie nevyplnené)", colR, ry);
+      ry += 6;
+    }
+
+    y = Math.max(y, ry) + 6;
+
+    // Separator
+    doc.setDrawColor(229,226,220); doc.setLineWidth(0.3);
+    doc.line(margin, y - 3, pageW - margin, y - 3);
+  });
+
+  // ===== FOOTER =====
+  const pageCount = doc.getNumberOfPages();
+  for (let p = 1; p <= pageCount; p++) {
+    doc.setPage(p);
+    doc.setFont(F, "normal"); doc.setFontSize(7.5); doc.setTextColor(160,160,170);
+    doc.text("RWAdoor | www.dvererwa.sk", margin, pageH - 8);
+    doc.text(`Strana ${p} / ${pageCount}`, pageW - margin, pageH - 8, { align: "right" });
+  }
+
+  const safeName = (custName || "objednavka").replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 30);
+  const fnameDate = quoteDateVal.replace(/-/g, "");
+  doc.save(`Objednavka_${safeName}_${fnameDate}.pdf`);
+  showToast("Objednávkový list vygenerovaný");
+}
+
+
+function formatDate(iso) {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-");
+  return `${parseInt(d,10)}. ${parseInt(m,10)}. ${y}`;
+}
+
+// ====== STAGE SCROLL ======
+function scrollToStage(n) {
+  const el = document.getElementById("stage-" + n);
+  if (el) {
+    const y = el.getBoundingClientRect().top + window.scrollY - 90;
+    window.scrollTo({ top: y, behavior: "smooth" });
+  }
+}
+window.addEventListener("scroll", () => {
+  const stages = [1,2,3].map(n => document.getElementById("stage-" + n));
+  const y = window.scrollY + 140;
+  let active = 1;
+  stages.forEach((s, i) => { if (s && s.offsetTop <= y) active = i + 1; });
+  document.querySelectorAll(".stage-tab").forEach(t => {
+    t.classList.toggle("active", Number(t.dataset.stage) === active);
+  });
+});
+
+// ====== INIT ======
+document.addEventListener("DOMContentLoaded", () => {
+  // Preload fonts in background so PDF generation is instant
+  loadRobotoFonts().catch(() => {});
+  document.getElementById("quoteDate").value = new Date().toISOString().slice(0,10);
+  refreshTopQuoteNo();
+
+  // Customer field listeners → autosave
+  ["custName","custAddress","custPhone","custEmail","quoteDate","quoteValidity","internalNotes"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("input", saveStateDebounced);
+    if (el && el.tagName === "SELECT") el.addEventListener("change", saveStateDebounced);
+  });
+
+  const restored = loadState();
+  if (restored) {
+    renderDoors();
+    showToast("Obnovená rozpracovaná ponuka");
+  } else {
+    addDoor();
+  }
+});
+</script>
+</body>
+</html>
